@@ -354,10 +354,14 @@ async function deleteCurrentFile() {
   });
 
   if (confirmed) {
-    // 标记为没有未保存更改，避免删除后触发自动保存
+    const wasUnsaved = state.hasUnsavedChanges;
+    // 暂时设为 false，防止 deleteCurrentImage 触发的 UI 更新导致自动保存已删除的文件
     state.hasUnsavedChanges = false;
+
     const success = await fileManager.deleteCurrentImage();
     if (!success) {
+      // 如果删除失败，恢复未保存状态
+      state.hasUnsavedChanges = wasUnsaved;
       alert('删除文件失败');
     }
   }
