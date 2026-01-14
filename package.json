@@ -28,6 +28,13 @@
     "directories": {
       "output": "dist"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Cupcc",
+        "repo": "YOLO-Labeler"
+      }
+    ],
     "files": [
       "main.js",
       "preload.js",
