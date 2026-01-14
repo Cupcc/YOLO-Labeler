@@ -189,6 +189,27 @@ ipcMain.handle('files:exists', async (event, filePath) => {
   return fs.existsSync(filePath);
 });
 
+// 删除图片和对应的标注文件
+ipcMain.handle('files:deleteFile', async (event, imagePath) => {
+  try {
+    // 删除图片文件
+    if (fs.existsSync(imagePath)) {
+      fs.unlinkSync(imagePath);
+    }
+    
+    // 删除对应的标注文件
+    const labelPath = imagePath.replace(/\.[^.]+$/, '.txt');
+    if (fs.existsSync(labelPath)) {
+      fs.unlinkSync(labelPath);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    return false;
+  }
+});
+
 // 获取当前主题状态
 ipcMain.handle('theme:getIsDark', () => {
   return nativeTheme.shouldUseDarkColors;

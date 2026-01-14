@@ -169,7 +169,19 @@ function bindCallbacks() {
     renderFileList(images);
     elements.fileCount.textContent = images.length;
     if (images.length > 0) {
-      loadImageAt(0);
+      // 如果当前索引有效，则加载当前索引的图片，否则加载第一张
+      const indexToLoad = (fileManager.currentIndex >= 0 && fileManager.currentIndex < images.length) 
+        ? fileManager.currentIndex 
+        : 0;
+      loadImageAt(indexToLoad);
+    } else {
+      // 处理没有任何图片的情况
+      elements.currentFile.textContent = '未打开文件';
+      elements.emptyState.classList.remove('hidden');
+      elements.imageInfo.textContent = '';
+      canvas.clear();
+      updateLabelList();
+      updateUIState();
     }
     // 异步检查标注状态
     fileManager.checkLabelsExist();
@@ -182,7 +194,7 @@ function bindCallbacks() {
   };
   
   fileManager.onImageChanged = async (image, index, imageData) => {
-    elements.currentFile.textContent = image.name;
+    elements.currentFile.textContent = image.path;
     elements.emptyState.classList.add('hidden');
     
     await canvas.loadImage(imageData);
@@ -261,8 +273,20 @@ function registerShortcuts() {
     },
     'd': goToNextImage,
     'a': goToPrevImage,
-    'del': () => canvas.deleteSelected(),
-    'backspace': () => canvas.deleteSelected(),
+    'del': () => {
+      if (canvas.selectedIndex !== -1) {
+        canvas.deleteSelected();
+      } else {
+        deleteCurrentFile();
+      }
+    },
+    'backspace': () => {
+      if (canvas.selectedIndex !== -1) {
+        canvas.deleteSelected();
+      } else {
+        deleteCurrentFile();
+      }
+    },
     'ctrl+s': saveCurrentLabels,
     'ctrl+z': () => {
       canvas.undo();
@@ -316,6 +340,26 @@ async function goToPrevImage() {
 async function goToNextImage() {
   if (fileManager.currentIndex < fileManager.images.length - 1) {
     await loadImageAt(fileManager.currentIndex + 1);
+  }
+}
+
+async function deleteCurrentFile() {
+  const currentImage = fileManager.getCurrentImage();
+  if (!currentImage) return;
+
+  const confirmed = await window.electronAPI.showConfirm({
+    title: '确认删除',
+    message: `确定要删除图片 "${currentImage.name}" 及其标注文件吗？\n此操作不可撤销。`,
+    buttons: ['删除', '取消']
+  });
+
+  if (confirmed) {
+    // 标记为没有未保存更改，避免删除后触发自动保存
+    state.hasUnsavedChanges = false;
+    const success = await fileManager.deleteCurrentImage();
+    if (!success) {
+      alert('删除文件失败');
+    }
   }
 }
 

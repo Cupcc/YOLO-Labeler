@@ -127,6 +127,33 @@ class FileManager {
       return `${ann.classId} ${ann.xCenter.toFixed(6)} ${ann.yCenter.toFixed(6)} ${ann.width.toFixed(6)} ${ann.height.toFixed(6)}`;
     }).join('\n');
   }
+
+  // 删除当前图片
+  async deleteCurrentImage() {
+    const image = this.getCurrentImage();
+    if (!image) return false;
+
+    const success = await window.electronAPI.deleteFile(image.path);
+    if (success) {
+      // 从数组中移除
+      this.images.splice(this.currentIndex, 1);
+      
+      // 更新索引
+      if (this.images.length === 0) {
+        this.currentIndex = -1;
+      } else if (this.currentIndex >= this.images.length) {
+        this.currentIndex = this.images.length - 1;
+      }
+      
+      // 通知 UI 更新
+      if (this.onImagesLoaded) {
+        this.onImagesLoaded(this.images, this.currentDir);
+      }
+      
+      return true;
+    }
+    return false;
+  }
   
   // 下一张图片
   async nextImage() {

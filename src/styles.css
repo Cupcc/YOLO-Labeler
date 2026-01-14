@@ -149,18 +149,12 @@ body {
 
 .toolbar-left {
   justify-content: flex-start;
+  min-width: 0; /* 允许子元素缩小 */
 }
 
 .toolbar-right {
   justify-content: flex-end;
-}
-
-.toolbar-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  flex: 0 0 auto;
+  flex: 0 0 auto; /* 右侧不需要太大 */
 }
 
 .toolbar-btn {
@@ -222,7 +216,8 @@ body {
 .current-file {
   font-size: 13px;
   color: var(--text-secondary);
-  max-width: 400px;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

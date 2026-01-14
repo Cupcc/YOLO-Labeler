@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readImage: (imagePath) => ipcRenderer.invoke('files:readImage', imagePath),
   readLabels: (imagePath) => ipcRenderer.invoke('files:readLabels', imagePath),
   saveLabels: (imagePath, labels) => ipcRenderer.invoke('files:saveLabels', imagePath, labels),
+  deleteFile: (filePath) => ipcRenderer.invoke('files:deleteFile', filePath),
   readClasses: (dirPath) => ipcRenderer.invoke('files:readClasses', dirPath),
   saveClasses: (dirPath, classes) => ipcRenderer.invoke('files:saveClasses', dirPath, classes),
   fileExists: (filePath) => ipcRenderer.invoke('files:exists', filePath),
