@@ -8,7 +8,8 @@
     "dev": "electron . --dev",
     "build": "electron-builder",
     "build:win": "electron-builder --win",
-    "build:dir": "electron-builder --dir"
+    "build:dir": "electron-builder --dir",
+    "release": "electron-builder --win --publish always"
   },
   "keywords": [
     "yolo",
