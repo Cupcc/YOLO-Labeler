@@ -159,6 +159,12 @@ function bindEvents() {
   elements.classModal.addEventListener('click', (e) => {
     if (e.target === elements.classModal) hideClassModal();
   });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !elements.classModal.classList.contains('hidden')) {
+      e.preventDefault();
+      hideClassModal();
+    }
+  });
   elements.addClassModal.addEventListener('click', (e) => {
     if (e.target === elements.addClassModal) hideAddClassModal();
   });
