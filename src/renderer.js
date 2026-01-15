@@ -552,12 +552,14 @@ function updateUIState() {
 function showClassModal() {
   elements.classModal.classList.remove('hidden');
   updateModalClassList(classManager.classes);
+  shortcutManager.setEnabled(false);
 }
 
 function hideClassModal() {
   elements.classModal.classList.add('hidden');
   state.pendingRect = null;
   state.pendingAnnotationIndex = -1;
+  shortcutManager.setEnabled(true);
 }
 
 function updateModalClassList(classes) {
