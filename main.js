@@ -75,6 +75,7 @@ function setupAutoUpdater() {
   }
 
   autoUpdater.autoDownload = true;
+  autoUpdater.allowPrerelease = false;
 
   autoUpdater.on('update-downloaded', async () => {
     if (!mainWindow) {
@@ -98,6 +99,26 @@ function setupAutoUpdater() {
   });
 
   autoUpdater.checkForUpdatesAndNotify();
+}
+
+function getUpdateErrorPresentation(error) {
+  const message = (error?.message || '').toLowerCase();
+  const statusCode = error?.statusCode || error?.response?.statusCode;
+  const isMissingRelease = message.includes('unable to find latest version on github')
+    || statusCode === 404
+    || statusCode === 406;
+  if (isMissingRelease) {
+    return {
+      type: 'info',
+      title: '检查更新',
+      message: '当前已是最新版本（未发布更新包）。如需更新，请在 GitHub Releases 发布正式版本。'
+    };
+  }
+  return {
+    type: 'error',
+    title: '检查更新失败',
+    message: error?.message || '未知错误'
+  };
 }
 
 function setupAppMenu() {
@@ -245,11 +266,8 @@ function manualCheckForUpdates() {
 
   const onError = error => {
     cleanup();
-    dialog.showMessageBox({
-      type: 'error',
-      title: '检查更新失败',
-      message: error?.message || '未知错误'
-    });
+    const presentation = getUpdateErrorPresentation(error);
+    dialog.showMessageBox(presentation);
   };
 
   autoUpdater.once('update-available', onAvailable);
