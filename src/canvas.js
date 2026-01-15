@@ -50,6 +50,7 @@ class CanvasManager {
     this.onAnnotationSelected = null;
     this.onAnnotationDeleted = null;
     this.onAnnotationsChanged = null;
+    this.onAnnotationRelabel = null;
     this.onMouseMove = null;
     this.onZoomChanged = null;
     
@@ -71,6 +72,7 @@ class CanvasManager {
     this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
     this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
     this.canvas.addEventListener('mouseleave', (e) => this.handleMouseLeave(e));
+    this.canvas.addEventListener('dblclick', (e) => this.handleDoubleClick(e));
     this.canvas.addEventListener('wheel', (e) => this.handleWheel(e), { passive: false });
     this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     
@@ -413,6 +415,29 @@ class CanvasManager {
       this.render();
     }
   }
+
+  // 处理双击（重新选择标签）
+  handleDoubleClick(e) {
+    if (!this.image) return;
+    
+    const rect = this.canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const imgPos = this.screenToImage(x, y);
+    
+    const clickedIndex = this.getAnnotationAtPoint(imgPos.x, imgPos.y);
+    if (clickedIndex < 0) return;
+    
+    // 选中并触发重新标注
+    this.selectedIndex = clickedIndex;
+    this.render();
+    if (this.onAnnotationSelected) {
+      this.onAnnotationSelected(clickedIndex);
+    }
+    if (this.onAnnotationRelabel) {
+      this.onAnnotationRelabel(clickedIndex);
+    }
+  }
   
   // 处理滚轮缩放（仅在按住Ctrl键时生效）
   handleWheel(e) {
@@ -670,6 +695,22 @@ class CanvasManager {
   selectAnnotation(index) {
     this.selectedIndex = index;
     this.render();
+  }
+
+  // 更新标注类别
+  updateAnnotationClass(index, classId, className) {
+    if (index < 0 || index >= this.annotations.length) return;
+    this.saveHistory();
+    this.annotations[index].classId = classId;
+    this.annotations[index].className = className;
+    this.selectedIndex = index;
+    this.render();
+    if (this.onAnnotationsChanged) {
+      this.onAnnotationsChanged();
+    }
+    if (this.onAnnotationSelected) {
+      this.onAnnotationSelected(index);
+    }
   }
   
   // 设置绘制模式

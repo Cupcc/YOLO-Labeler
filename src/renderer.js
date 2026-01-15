@@ -54,6 +54,7 @@ const elements = {
 // 应用状态
 const state = {
   pendingRect: null,  // 等待分配类别的矩形
+  pendingAnnotationIndex: -1,
   hasUnsavedChanges: false
 };
 
@@ -241,6 +242,12 @@ function bindCallbacks() {
   
   canvas.onAnnotationSelected = (index) => {
     highlightLabelListItem(index);
+  };
+
+  canvas.onAnnotationRelabel = (index) => {
+    state.pendingRect = null;
+    state.pendingAnnotationIndex = index;
+    showClassModal();
   };
   
   canvas.onAnnotationsChanged = () => {
@@ -546,6 +553,7 @@ function showClassModal() {
 function hideClassModal() {
   elements.classModal.classList.add('hidden');
   state.pendingRect = null;
+  state.pendingAnnotationIndex = -1;
 }
 
 function updateModalClassList(classes) {
@@ -566,12 +574,19 @@ function updateModalClassList(classes) {
 }
 
 function selectClassForPendingRect(classId) {
+  const className = classManager.getClassName(classId);
+  if (state.pendingAnnotationIndex >= 0) {
+    canvas.updateAnnotationClass(state.pendingAnnotationIndex, classId, className);
+    hideClassModal();
+    return;
+  }
+  
   if (!state.pendingRect) return;
   
   const annotation = {
     ...state.pendingRect,
     classId: classId,
-    className: classManager.getClassName(classId)
+    className: className
   };
   
   canvas.addAnnotation(annotation);
