@@ -587,7 +587,10 @@ function selectClassForPendingRect(classId) {
     return;
   }
   
-  if (!state.pendingRect) return;
+  if (!state.pendingRect) {
+    hideClassModal();
+    return;
+  }
   
   const annotation = {
     ...state.pendingRect,
