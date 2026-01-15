@@ -735,12 +735,9 @@ class CanvasManager {
       ctx.lineWidth = isSelected ? 3 / this.scale : 2 / this.scale;
       ctx.strokeRect(ann.x, ann.y, ann.width, ann.height);
       
-      // 绘制类别标签
+      // 绘制类别标签（无背景，避免遮挡目标）
       const labelHeight = 18 / this.scale;
       const fontSize = 12 / this.scale;
-      ctx.fillStyle = color;
-      ctx.fillRect(ann.x, ann.y - labelHeight, ann.width, labelHeight);
-      
       ctx.fillStyle = '#fff';
       ctx.font = `bold ${fontSize}px sans-serif`;
       ctx.textBaseline = 'middle';
