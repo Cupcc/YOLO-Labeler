@@ -103,22 +103,14 @@ function setupAutoUpdater() {
 }
 
 function getUpdateErrorPresentation(error) {
-  const message = (error?.message || '').toLowerCase();
+  const message = error?.message || '未知错误';
   const statusCode = error?.statusCode || error?.response?.statusCode;
-  const isMissingRelease = message.includes('unable to find latest version on github')
-    || statusCode === 404
-    || statusCode === 406;
-  if (isMissingRelease) {
-    return {
-      type: 'info',
-      title: '检查更新',
-      message: '当前已是最新版本。'
-    };
-  }
+  const extra = statusCode ? ` (HTTP ${statusCode})` : '';
+
   return {
     type: 'error',
     title: '检查更新失败',
-    message: error?.message || '未知错误'
+    message: `无法完成更新检查：${message}${extra}`
   };
 }
 
