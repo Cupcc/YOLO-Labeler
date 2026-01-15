@@ -104,6 +104,7 @@ function setupAppMenu() {
   const locale = app.getLocale?.() || '';
   const isZh = locale.toLowerCase().startsWith('zh');
   const updateLabel = isZh ? '检查更新' : 'Check for Updates';
+  const aboutLabel = isZh ? '关于' : 'About';
 
   const template = [
     { role: 'fileMenu' },
@@ -118,12 +119,94 @@ function setupAppMenu() {
           click: manualCheckForUpdates
         },
         { type: 'separator' },
-        { role: 'about' }
+        {
+          label: aboutLabel,
+          click: showAboutDialog
+        }
       ]
     }
   ];
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+function showAboutDialog() {
+  const locale = app.getLocale?.() || '';
+  const isZh = locale.toLowerCase().startsWith('zh');
+  const appName = app.getName();
+  const version = app.getVersion();
+  const { electron, chrome, node, v8 } = process.versions || {};
+  const platform = `${process.platform} ${process.arch}`;
+  const buildLabel = app.isPackaged ? 'Production' : 'Development';
+  const appPath = app.getAppPath();
+  let pkgInfo = {};
+  try {
+    const pkgPath = path.join(appPath, 'package.json');
+    if (fs.existsSync(pkgPath)) {
+      const raw = fs.readFileSync(pkgPath, 'utf-8');
+      pkgInfo = JSON.parse(raw);
+    }
+  } catch (error) {
+    console.error('Error reading package.json:', error);
+  }
+  const normalizeRepoUrl = urlValue => {
+    if (!urlValue) {
+      return '';
+    }
+    let url = urlValue.trim();
+    if (url.startsWith('github:')) {
+      url = `https://github.com/${url.slice('github:'.length)}`;
+    }
+    if (url.startsWith('git+')) {
+      url = url.slice('git+'.length);
+    }
+    if (url.endsWith('.git')) {
+      url = url.slice(0, -4);
+    }
+    return url;
+  };
+  const author = typeof pkgInfo.author === 'string' ? pkgInfo.author : pkgInfo.author?.name;
+  const repositoryUrl = typeof pkgInfo.repository === 'string'
+    ? pkgInfo.repository
+    : pkgInfo.repository?.url;
+  const homepage = pkgInfo.homepage || '';
+  const publishEntries = Array.isArray(pkgInfo.build?.publish) ? pkgInfo.build.publish : [];
+  const publishGithub = publishEntries.find(entry => entry?.provider === 'github' && entry?.owner && entry?.repo);
+  const publishRepoUrl = publishGithub ? `https://github.com/${publishGithub.owner}/${publishGithub.repo}` : '';
+  const officialUrl = normalizeRepoUrl(repositoryUrl) || homepage || publishRepoUrl;
+  const title = isZh ? `关于 ${appName}` : `About ${appName}`;
+  const lines = isZh
+    ? [
+      appName,
+      `版本：${version}`,
+      author ? `作者：${author}` : '',
+      officialUrl ? `官网：${officialUrl}` : '',
+      `构建：${buildLabel}`,
+      `平台：${platform}`,
+      `Electron：${electron || ''}`,
+      `Chrome：${chrome || ''}`,
+      `Node：${node || ''}`,
+      `V8：${v8 || ''}`
+    ]
+    : [
+      appName,
+      `Version: ${version}`,
+      author ? `Author: ${author}` : '',
+      officialUrl ? `Official: ${officialUrl}` : '',
+      `Build: ${buildLabel}`,
+      `Platform: ${platform}`,
+      `Electron: ${electron || ''}`,
+      `Chrome: ${chrome || ''}`,
+      `Node: ${node || ''}`,
+      `V8: ${v8 || ''}`
+    ];
+  const message = lines.filter(Boolean).join('\n');
+
+  dialog.showMessageBox({
+    type: 'info',
+    title,
+    message
+  });
 }
 
 function manualCheckForUpdates() {
