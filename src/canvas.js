@@ -39,6 +39,7 @@ class CanvasManager {
     
     // 撤销功能 - 历史记录栈
     this.history = [];
+    this.redoStack = [];
     this.maxHistorySize = 50;
     
     // 调整大小相关
@@ -120,6 +121,8 @@ class CanvasManager {
         this.imageHeight = img.height;
         this.annotations = [];
         this.selectedIndex = -1;
+        this.history = []; // 重置历史记录
+        this.redoStack = []; // 重置重做记录
         
         if (keepZoom && !isFirstImage) {
           // 保持之前的缩放比例，只重新居中
@@ -599,6 +602,7 @@ class CanvasManager {
     this.annotations = annotations;
     this.selectedIndex = -1;
     this.history = []; // 重置历史记录
+    this.redoStack = []; // 重置重做记录
     this.render();
   }
   
@@ -612,6 +616,9 @@ class CanvasManager {
     
     this.history.push(state);
     
+    // 发生新操作时，清空重做栈
+    this.redoStack = [];
+    
     // 限制历史记录大小
     if (this.history.length > this.maxHistorySize) {
       this.history.shift();
@@ -624,7 +631,41 @@ class CanvasManager {
       return false;
     }
     
+    // 将当前状态存入重做栈
+    this.redoStack.push({
+      annotations: JSON.parse(JSON.stringify(this.annotations)),
+      selectedIndex: this.selectedIndex
+    });
+    
     const state = this.history.pop();
+    this.annotations = state.annotations;
+    this.selectedIndex = state.selectedIndex;
+    this.render();
+    
+    if (this.onAnnotationsChanged) {
+      this.onAnnotationsChanged();
+    }
+    
+    if (this.onAnnotationSelected) {
+      this.onAnnotationSelected(this.selectedIndex);
+    }
+    
+    return true;
+  }
+  
+  // 重做操作
+  redo() {
+    if (this.redoStack.length === 0) {
+      return false;
+    }
+    
+    // 将当前状态存回历史栈
+    this.history.push({
+      annotations: JSON.parse(JSON.stringify(this.annotations)),
+      selectedIndex: this.selectedIndex
+    });
+    
+    const state = this.redoStack.pop();
     this.annotations = state.annotations;
     this.selectedIndex = state.selectedIndex;
     this.render();
@@ -643,6 +684,11 @@ class CanvasManager {
   // 检查是否可以撤销
   canUndo() {
     return this.history.length > 0;
+  }
+  
+  // 检查是否可以重做
+  canRedo() {
+    return this.redoStack.length > 0;
   }
   
   // 添加标注

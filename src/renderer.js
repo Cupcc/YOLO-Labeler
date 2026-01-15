@@ -299,6 +299,10 @@ function registerShortcuts() {
       canvas.undo();
       updateLabelList();
     },
+    'ctrl+y': () => {
+      canvas.redo();
+      updateLabelList();
+    },
     'esc': () => {
       canvas.setDrawMode(false);
       canvas.selectAnnotation(-1);
