@@ -1,4 +1,5 @@
-const { app, BrowserWindow, ipcMain, dialog, nativeTheme } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, nativeTheme, Menu } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
 
@@ -68,7 +69,117 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(createWindow);
+function setupAutoUpdater() {
+  if (!app.isPackaged) {
+    return;
+  }
+
+  autoUpdater.autoDownload = true;
+
+  autoUpdater.on('update-downloaded', async () => {
+    if (!mainWindow) {
+      return;
+    }
+    const result = await dialog.showMessageBox(mainWindow, {
+      type: 'info',
+      buttons: ['立即重启', '稍后'],
+      defaultId: 0,
+      cancelId: 1,
+      title: '更新已下载',
+      message: '新版本已下载，是否立即重启应用以完成更新？'
+    });
+    if (result.response === 0) {
+      autoUpdater.quitAndInstall();
+    }
+  });
+
+  autoUpdater.on('error', error => {
+    console.error('Auto update error:', error);
+  });
+
+  autoUpdater.checkForUpdatesAndNotify();
+}
+
+function setupAppMenu() {
+  const locale = app.getLocale?.() || '';
+  const isZh = locale.toLowerCase().startsWith('zh');
+  const updateLabel = isZh ? '检查更新' : 'Check for Updates';
+
+  const template = [
+    { role: 'fileMenu' },
+    { role: 'editMenu' },
+    { role: 'viewMenu' },
+    { role: 'windowMenu' },
+    {
+      role: 'help',
+      submenu: [
+        {
+          label: updateLabel,
+          click: manualCheckForUpdates
+        },
+        { type: 'separator' },
+        { role: 'about' }
+      ]
+    }
+  ];
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+function manualCheckForUpdates() {
+  if (!app.isPackaged) {
+    dialog.showMessageBox({
+      type: 'info',
+      title: '检查更新',
+      message: '仅在打包后的应用中可检查更新。'
+    });
+    return;
+  }
+
+  const cleanup = () => {
+    autoUpdater.removeListener('update-available', onAvailable);
+    autoUpdater.removeListener('update-not-available', onNotAvailable);
+    autoUpdater.removeListener('error', onError);
+  };
+
+  const onAvailable = info => {
+    cleanup();
+    dialog.showMessageBox({
+      type: 'info',
+      title: '发现新版本',
+      message: `发现新版本 ${info?.version || ''}，正在下载...`
+    });
+  };
+
+  const onNotAvailable = () => {
+    cleanup();
+    dialog.showMessageBox({
+      type: 'info',
+      title: '检查更新',
+      message: '当前已是最新版本。'
+    });
+  };
+
+  const onError = error => {
+    cleanup();
+    dialog.showMessageBox({
+      type: 'error',
+      title: '检查更新失败',
+      message: error?.message || '未知错误'
+    });
+  };
+
+  autoUpdater.once('update-available', onAvailable);
+  autoUpdater.once('update-not-available', onNotAvailable);
+  autoUpdater.once('error', onError);
+  autoUpdater.checkForUpdates().catch(onError);
+}
+
+app.whenReady().then(() => {
+  createWindow();
+  setupAutoUpdater();
+  setupAppMenu();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -242,3 +353,4 @@ ipcMain.handle('dialog:showConfirm', async (event, options) => {
   });
   return result.response === 0;
 });
+
