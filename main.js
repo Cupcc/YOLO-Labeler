@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 
 let mainWindow;
+let isCheckingForUpdates = false;
 
 // 配置文件路径
 const configPath = path.join(app.getPath('userData'), 'config.json');
@@ -111,7 +112,7 @@ function getUpdateErrorPresentation(error) {
     return {
       type: 'info',
       title: '检查更新',
-      message: '当前已是最新版本（未发布更新包）。如需更新，请在 GitHub Releases 发布正式版本。'
+      message: '当前已是最新版本。'
     };
   }
   return {
@@ -240,13 +241,24 @@ function manualCheckForUpdates() {
     return;
   }
 
+  // 防止重复检查
+  if (isCheckingForUpdates) {
+    return;
+  }
+  isCheckingForUpdates = true;
+
+  let handled = false;
+
   const cleanup = () => {
+    isCheckingForUpdates = false;
     autoUpdater.removeListener('update-available', onAvailable);
     autoUpdater.removeListener('update-not-available', onNotAvailable);
     autoUpdater.removeListener('error', onError);
   };
 
   const onAvailable = info => {
+    if (handled) return;
+    handled = true;
     cleanup();
     dialog.showMessageBox({
       type: 'info',
@@ -256,6 +268,8 @@ function manualCheckForUpdates() {
   };
 
   const onNotAvailable = () => {
+    if (handled) return;
+    handled = true;
     cleanup();
     dialog.showMessageBox({
       type: 'info',
@@ -265,6 +279,8 @@ function manualCheckForUpdates() {
   };
 
   const onError = error => {
+    if (handled) return;
+    handled = true;
     cleanup();
     const presentation = getUpdateErrorPresentation(error);
     dialog.showMessageBox(presentation);
