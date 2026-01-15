@@ -1,6 +1,6 @@
 {
   "name": "yolo-labeler",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "简洁易用的 YOLO 格式矩形框标注工具",
   "main": "main.js",
   "scripts": {
