@@ -898,6 +898,237 @@ kbd {
   background: var(--border-light);
 }
 
+/* ========== 导出数据集弹窗 ========== */
+.export-modal-content {
+  min-width: 460px;
+  max-width: 520px;
+}
+
+.export-stats {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.export-stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.export-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.export-section {
+  margin-bottom: 16px;
+}
+
+.export-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+/* 三段式比例条 */
+.split-ratio-bar-wrapper {
+  padding: 8px 0;
+}
+
+.split-ratio-bar {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  border-radius: 6px;
+  overflow: visible;
+  position: relative;
+  user-select: none;
+}
+
+.split-segment {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: flex var(--transition-fast);
+}
+
+.split-segment-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 4px;
+}
+
+.split-segment.split-train {
+  background: #4f46e5;
+  border-radius: 6px 0 0 6px;
+}
+
+.split-segment.split-val {
+  background: #0ea5e9;
+}
+
+.split-segment.split-test {
+  background: #f59e0b;
+  border-radius: 0 6px 6px 0;
+}
+
+.split-handle {
+  width: 12px;
+  height: 38px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  cursor: col-resize;
+  z-index: 10;
+  flex-shrink: 0;
+  position: relative;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.split-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 12px;
+  background: var(--text-muted);
+  border-radius: 1px;
+}
+
+.split-handle:hover,
+.split-handle.dragging {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+}
+
+/* 比例值显示 */
+.split-ratio-values {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  gap: 8px;
+}
+
+.split-ratio-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 6px 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-sm);
+}
+
+.split-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.split-dot.train { background: #4f46e5; }
+.split-dot.val { background: #0ea5e9; }
+.split-dot.test { background: #f59e0b; }
+
+.split-pct {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-left: auto;
+}
+
+.split-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 36px;
+  text-align: right;
+}
+
+/* 导出路径 */
+.export-path-row {
+  display: flex;
+  gap: 8px;
+}
+
+.export-path-row .text-input {
+  flex: 1;
+  cursor: pointer;
+}
+
+/* 导出结构预览 */
+.export-tree {
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+}
+
+.tree-item {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 2px 0;
+  font-family: 'Consolas', 'Courier New', monospace;
+}
+
+/* 导出按钮禁用状态 */
+.btn.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn.primary:disabled:hover {
+  background: var(--accent-primary);
+}
+
+/* 导出进度遮罩 */
+.export-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--border-radius);
+  z-index: 10;
+}
+
+.export-overlay-text {
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 /* ========== 响应式 ========== */
 @media (max-width: 1200px) {
   .right-sidebar {

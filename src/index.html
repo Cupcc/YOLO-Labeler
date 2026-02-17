@@ -33,7 +33,12 @@
         <span id="current-file" class="current-file">未打开文件</span>
         <span id="save-status" class="save-status"></span>
       </div>
-      <div class="toolbar-right"></div>
+      <div class="toolbar-right">
+        <button id="btn-export" class="toolbar-btn" disabled>
+          <span class="icon">📦</span>
+          <span>导出数据集</span>
+        </button>
+      </div>
     </header>
 
     <!-- 主内容区 -->
@@ -145,6 +150,97 @@
         <div class="modal-actions">
           <button id="btn-confirm-add-class" class="btn primary">添加</button>
           <button id="btn-cancel-add-class" class="btn">取消</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 导出数据集弹窗 -->
+  <div id="export-modal" class="modal hidden">
+    <div class="modal-content export-modal-content">
+      <div class="modal-header">
+        <h3>📦 导出数据集</h3>
+        <button id="export-modal-close" class="btn-close">×</button>
+      </div>
+      <div class="modal-body">
+        <!-- 统计信息 -->
+        <div class="export-stats">
+          <div class="export-stat-item">
+            <span class="stat-label">已标注图片</span>
+            <span id="export-labeled-count" class="stat-value">0</span>
+          </div>
+          <div class="export-stat-item">
+            <span class="stat-label">未标注图片</span>
+            <span id="export-unlabeled-count" class="stat-value">0</span>
+          </div>
+        </div>
+
+        <div class="export-note">仅导出已标注的图片</div>
+
+        <!-- 比例调整 -->
+        <div class="export-section">
+          <div class="export-section-title">数据集切分比例</div>
+          <div class="split-ratio-bar-wrapper">
+            <div id="split-ratio-bar" class="split-ratio-bar">
+              <div id="split-train" class="split-segment split-train">
+                <span class="split-segment-label">Train</span>
+              </div>
+              <div id="split-handle-1" class="split-handle" data-handle="1"></div>
+              <div id="split-val" class="split-segment split-val">
+                <span class="split-segment-label">Val</span>
+              </div>
+              <div id="split-handle-2" class="split-handle" data-handle="2"></div>
+              <div id="split-test" class="split-segment split-test">
+                <span class="split-segment-label">Test</span>
+              </div>
+            </div>
+          </div>
+          <div class="split-ratio-values">
+            <div class="split-ratio-item train">
+              <span class="split-dot train"></span>
+              <span>Train</span>
+              <span id="ratio-train-pct" class="split-pct">80%</span>
+              <span id="ratio-train-count" class="split-count">0 张</span>
+            </div>
+            <div class="split-ratio-item val">
+              <span class="split-dot val"></span>
+              <span>Val</span>
+              <span id="ratio-val-pct" class="split-pct">10%</span>
+              <span id="ratio-val-count" class="split-count">0 张</span>
+            </div>
+            <div class="split-ratio-item test">
+              <span class="split-dot test"></span>
+              <span>Test</span>
+              <span id="ratio-test-pct" class="split-pct">10%</span>
+              <span id="ratio-test-count" class="split-count">0 张</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 导出路径 -->
+        <div class="export-section">
+          <div class="export-section-title">导出路径</div>
+          <div class="export-path-row">
+            <input type="text" id="export-path-input" class="text-input" placeholder="选择导出目录..." readonly>
+            <button id="btn-select-export-dir" class="btn">浏览</button>
+          </div>
+        </div>
+
+        <!-- 导出结构预览 -->
+        <div class="export-section">
+          <div class="export-section-title">导出结构</div>
+          <div class="export-tree">
+            <div class="tree-item">📁 images/train, val, test</div>
+            <div class="tree-item">📁 labels/train, val, test</div>
+            <div class="tree-item">📄 data.yaml</div>
+            <div class="tree-item">📄 classes.txt</div>
+          </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="modal-actions">
+          <button id="btn-cancel-export" class="btn">取消</button>
+          <button id="btn-confirm-export" class="btn primary" disabled>开始导出</button>
         </div>
       </div>
     </div>

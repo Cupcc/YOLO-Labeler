@@ -463,3 +463,112 @@ ipcMain.handle('dialog:showConfirm', async (event, options) => {
   return result.response === 0;
 });
 
+// 选择导出目录
+ipcMain.handle('dialog:selectExportDir', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: '选择导出目录',
+    properties: ['openDirectory', 'createDirectory']
+  });
+  return result.canceled ? null : result.filePaths[0];
+});
+
+// 导出切分数据集
+ipcMain.handle('export:splitDataset', async (event, options) => {
+  const { sourceDir, exportDir, ratios, classNames } = options;
+  // ratios = { train: 0.8, val: 0.1, test: 0.1 }
+
+  try {
+    // 收集所有有标注的图片
+    const files = fs.readdirSync(sourceDir);
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp'];
+    const labeledImages = [];
+
+    for (const file of files) {
+      const ext = path.extname(file).toLowerCase();
+      if (!imageExtensions.includes(ext)) continue;
+
+      const imagePath = path.join(sourceDir, file);
+      const labelPath = imagePath.replace(/\.[^.]+$/, '.txt');
+      if (fs.existsSync(labelPath)) {
+        const labelContent = fs.readFileSync(labelPath, 'utf-8').trim();
+        if (labelContent.length > 0) {
+          labeledImages.push({ imageName: file, imagePath, labelPath });
+        }
+      }
+    }
+
+    if (labeledImages.length === 0) {
+      return { success: false, message: '没有找到已标注的图片' };
+    }
+
+    // 打乱顺序
+    for (let i = labeledImages.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [labeledImages[i], labeledImages[j]] = [labeledImages[j], labeledImages[i]];
+    }
+
+    // 按比例切分
+    const total = labeledImages.length;
+    const trainCount = Math.round(total * ratios.train);
+    const valCount = Math.round(total * ratios.val);
+
+    const splits = {
+      train: labeledImages.slice(0, trainCount),
+      val: labeledImages.slice(trainCount, trainCount + valCount),
+      test: labeledImages.slice(trainCount + valCount)
+    };
+
+    // 创建目录结构
+    const dirs = [
+      'images/train', 'images/val', 'images/test',
+      'labels/train', 'labels/val', 'labels/test'
+    ];
+    for (const dir of dirs) {
+      const fullPath = path.join(exportDir, dir);
+      fs.mkdirSync(fullPath, { recursive: true });
+    }
+
+    // 复制文件
+    for (const [split, images] of Object.entries(splits)) {
+      for (const img of images) {
+        const destImage = path.join(exportDir, 'images', split, img.imageName);
+        const destLabel = path.join(exportDir, 'labels', split, img.imageName.replace(/\.[^.]+$/, '.txt'));
+        fs.copyFileSync(img.imagePath, destImage);
+        fs.copyFileSync(img.labelPath, destLabel);
+      }
+    }
+
+    // 复制 classes.txt
+    const classesPath = path.join(sourceDir, 'classes.txt');
+    if (fs.existsSync(classesPath)) {
+      fs.copyFileSync(classesPath, path.join(exportDir, 'classes.txt'));
+    }
+
+    // 生成 data.yaml
+    const yamlLines = [
+      `path: ${exportDir.replace(/\\/g, '/')}`,
+      `train: images/train`,
+      `val: images/val`,
+      `test: images/test`,
+      ``,
+      `nc: ${classNames.length}`,
+      `names: [${classNames.map(n => `'${n}'`).join(', ')}]`
+    ];
+    fs.writeFileSync(path.join(exportDir, 'data.yaml'), yamlLines.join('\n'), 'utf-8');
+
+    return {
+      success: true,
+      message: `导出完成`,
+      stats: {
+        total: labeledImages.length,
+        train: splits.train.length,
+        val: splits.val.length,
+        test: splits.test.length
+      }
+    };
+  } catch (error) {
+    console.error('Error exporting dataset:', error);
+    return { success: false, message: `导出失败: ${error.message}` };
+  }
+});
+

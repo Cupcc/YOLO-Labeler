@@ -22,5 +22,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // 主题
   onThemeUpdated: (callback) => ipcRenderer.on('theme:updated', (event, isDark) => callback(isDark)),
-  getIsDark: () => ipcRenderer.invoke('theme:getIsDark')
+  getIsDark: () => ipcRenderer.invoke('theme:getIsDark'),
+  
+  // 导出
+  selectExportDir: () => ipcRenderer.invoke('dialog:selectExportDir'),
+  splitDataset: (options) => ipcRenderer.invoke('export:splitDataset', options)
 });
