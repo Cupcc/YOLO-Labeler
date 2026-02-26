@@ -212,7 +212,7 @@ function bindEvents() {
 
 function bindCallbacks() {
 	// 文件管理回调
-	fileManager.onImagesLoaded = (images, dir) => {
+	fileManager.onImagesLoaded = (images, _dir) => {
 		renderFileList(images);
 		elements.fileCount.textContent = images.length;
 		if (images.length > 0) {
@@ -281,7 +281,7 @@ function bindCallbacks() {
 		updateModalClassList(classes);
 	};
 
-	classManager.onClassSelected = (id, classItem) => {
+	classManager.onClassSelected = (id, _classItem) => {
 		highlightClassListItem(id);
 	};
 
@@ -317,7 +317,7 @@ function bindCallbacks() {
 	};
 
 	// 缩放变化回调
-	canvas.onZoomChanged = (zoomPercent) => {
+	canvas.onZoomChanged = (_zoomPercent) => {
 		updateZoomDisplay();
 	};
 }
@@ -446,7 +446,7 @@ async function saveCurrentLabels() {
 // 自动保存已移除，仅在切换图片时保存
 
 function updateSaveStatus(status) {
-	elements.saveStatus.className = "save-status " + status;
+	elements.saveStatus.className = `save-status ${status}`;
 	switch (status) {
 		case "saved":
 			elements.saveStatus.textContent = "已保存";
@@ -487,7 +487,7 @@ function renderFileList(images) {
 	// 绑定点击事件
 	elements.fileList.querySelectorAll("li").forEach((li) => {
 		li.addEventListener("click", () => {
-			const index = parseInt(li.dataset.index);
+			const index = parseInt(li.dataset.index, 10);
 			loadImageAt(index);
 		});
 	});
@@ -524,7 +524,7 @@ function renderClassList(classes) {
 	elements.classList.querySelectorAll("li").forEach((li) => {
 		li.addEventListener("click", (e) => {
 			if (!e.target.classList.contains("class-delete")) {
-				const id = parseInt(li.dataset.id);
+				const id = parseInt(li.dataset.id, 10);
 				classManager.selectClass(id);
 			}
 		});
@@ -534,7 +534,7 @@ function renderClassList(classes) {
 	elements.classList.querySelectorAll(".class-delete").forEach((btn) => {
 		btn.addEventListener("click", async (e) => {
 			e.stopPropagation();
-			const id = parseInt(btn.dataset.id);
+			const id = parseInt(btn.dataset.id, 10);
 			if (confirm(`确定要删除类别 "${classManager.getClassName(id)}" 吗？`)) {
 				await classManager.deleteClass(id);
 			}
@@ -544,7 +544,7 @@ function renderClassList(classes) {
 
 function highlightClassListItem(id) {
 	elements.classList.querySelectorAll("li").forEach((li) => {
-		li.classList.toggle("active", parseInt(li.dataset.id) === id);
+		li.classList.toggle("active", parseInt(li.dataset.id, 10) === id);
 	});
 }
 
@@ -558,7 +558,7 @@ function updateLabelList() {
     <li data-index="${index}" ${index === canvas.selectedIndex ? 'class="selected"' : ""}>
       <span class="label-color" style="background: ${canvas.getClassColor(ann.classId)}"></span>
       <span class="label-info">
-        <span class="label-class">${ann.className && ann.className.includes(":") ? ann.className : `${ann.classId}:${ann.className || classManager.getClassName(ann.classId)}`}</span>
+        <span class="label-class">${ann.className?.includes(":") ? ann.className : `${ann.classId}:${ann.className || classManager.getClassName(ann.classId)}`}</span>
       </span>
       <span class="class-shortcut">${index + 1}</span>
       <button class="label-delete" data-index="${index}" title="删除标注">×</button>
@@ -571,7 +571,7 @@ function updateLabelList() {
 	elements.labelList.querySelectorAll("li").forEach((li) => {
 		li.addEventListener("click", (e) => {
 			if (!e.target.classList.contains("label-delete")) {
-				const index = parseInt(li.dataset.index);
+				const index = parseInt(li.dataset.index, 10);
 				canvas.selectAnnotation(index);
 				highlightLabelListItem(index);
 			}
@@ -582,7 +582,7 @@ function updateLabelList() {
 	elements.labelList.querySelectorAll(".label-delete").forEach((btn) => {
 		btn.addEventListener("click", (e) => {
 			e.stopPropagation();
-			const index = parseInt(btn.dataset.index);
+			const index = parseInt(btn.dataset.index, 10);
 			canvas.deleteAnnotation(index);
 		});
 	});
@@ -595,7 +595,7 @@ function highlightLabelListItem(index) {
 }
 
 function updateZoomDisplay() {
-	elements.zoomLevel.textContent = canvas.getZoomPercent() + "%";
+	elements.zoomLevel.textContent = `${canvas.getZoomPercent()}%`;
 }
 
 function updateUIState() {
@@ -642,7 +642,7 @@ function updateModalClassList(classes) {
 	// 绑定点击事件
 	elements.modalClassList.querySelectorAll("li").forEach((li) => {
 		li.addEventListener("click", () => {
-			const classId = parseInt(li.dataset.id);
+			const classId = parseInt(li.dataset.id, 10);
 			selectClassForPendingRect(classId);
 		});
 	});
@@ -802,9 +802,9 @@ function updateSplitDisplay() {
 	elements.splitTest.querySelector(".split-segment-label").style.display =
 		testRatio < 8 ? "none" : "";
 
-	elements.ratioTrainPct.textContent = trainRatio + "%";
-	elements.ratioValPct.textContent = valRatio + "%";
-	elements.ratioTestPct.textContent = testRatio + "%";
+	elements.ratioTrainPct.textContent = `${trainRatio}%`;
+	elements.ratioValPct.textContent = `${valRatio}%`;
+	elements.ratioTestPct.textContent = `${testRatio}%`;
 
 	// 计算具体张数
 	const stats = fileManager.getStats();
@@ -813,9 +813,9 @@ function updateSplitDisplay() {
 	const valCount = Math.round((total * valRatio) / 100);
 	const testCount = total - trainCount - valCount;
 
-	elements.ratioTrainCount.textContent = trainCount + " 张";
-	elements.ratioValCount.textContent = valCount + " 张";
-	elements.ratioTestCount.textContent = testCount + " 张";
+	elements.ratioTrainCount.textContent = `${trainCount} 张`;
+	elements.ratioValCount.textContent = `${valCount} 张`;
+	elements.ratioTestCount.textContent = `${testCount} 张`;
 }
 
 // 初始化三段式拖拽滑块
@@ -824,7 +824,7 @@ function initSplitSlider() {
 
 	function onHandleMouseDown(e) {
 		e.preventDefault();
-		const handleId = parseInt(e.target.dataset.handle);
+		const handleId = parseInt(e.target.dataset.handle, 10);
 		exportState.draggingHandle = handleId;
 		e.target.classList.add("dragging");
 
