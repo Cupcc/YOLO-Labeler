@@ -19,11 +19,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 配置
   saveLastDirectory: (dirPath) => ipcRenderer.invoke('config:saveLastDirectory', dirPath),
   getLastDirectory: () => ipcRenderer.invoke('config:getLastDirectory'),
+  saveModelPath: (modelPath) => ipcRenderer.invoke('config:saveModelPath', modelPath),
+  getModelPath: () => ipcRenderer.invoke('config:getModelPath'),
+  
+  // 模型相关
+  openModelFile: () => ipcRenderer.invoke('dialog:openModelFile'),
+  loadModel: (modelPath) => ipcRenderer.invoke('model:load', modelPath),
+  detectImage: (imagePath, confThreshold) => ipcRenderer.invoke('model:detect', imagePath, confThreshold),
+  getModelStatus: () => ipcRenderer.invoke('model:getStatus'),
+  closeModel: () => ipcRenderer.invoke('model:close'),
+  onModelLoaded: (callback) => ipcRenderer.on('model:loaded', (event, classes) => callback(classes)),
+  onModelError: (callback) => ipcRenderer.on('model:error', (event, error) => callback(error)),
+  onModelDetection: (callback) => ipcRenderer.on('model:detection', (event, data) => callback(data)),
   
   // 主题
   onThemeUpdated: (callback) => ipcRenderer.on('theme:updated', (event, isDark) => callback(isDark)),
   getIsDark: () => ipcRenderer.invoke('theme:getIsDark'),
-  
+
   // 导出
   selectExportDir: () => ipcRenderer.invoke('dialog:selectExportDir'),
   splitDataset: (options) => ipcRenderer.invoke('export:splitDataset', options)

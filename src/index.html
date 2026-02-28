@@ -29,6 +29,19 @@
           <span class="icon">▶</span>
           <span>下一张 (D)</span>
         </button>
+                <div class="separator"></div>
+        <button id="btn-load-model" class="toolbar-btn">
+          <span class="icon">🤖</span>
+          <span>加载模型</span>
+        </button>
+        <button id="btn-auto-label" class="toolbar-btn" disabled>
+          <span class="icon">⚡</span>
+          <span>自动标注</span>
+        </button>
+        <button id="btn-batch-label" class="toolbar-btn" disabled title="一键标注当前目录下所有图片">
+          <span class="icon">🚀</span>
+          <span>批量标注</span>
+        </button>
         <div class="separator"></div>
         <span id="current-file" class="current-file">未打开文件</span>
         <span id="save-status" class="save-status"></span>
@@ -163,7 +176,6 @@
         <button id="export-modal-close" class="btn-close">×</button>
       </div>
       <div class="modal-body">
-        <!-- 统计信息 -->
         <div class="export-stats">
           <div class="export-stat-item">
             <span class="stat-label">已标注图片</span>
@@ -174,10 +186,7 @@
             <span id="export-unlabeled-count" class="stat-value">0</span>
           </div>
         </div>
-
         <div class="export-note">仅导出已标注的图片</div>
-
-        <!-- 比例调整 -->
         <div class="export-section">
           <div class="export-section-title">数据集切分比例</div>
           <div class="split-ratio-bar-wrapper">
@@ -216,8 +225,6 @@
             </div>
           </div>
         </div>
-
-        <!-- 导出路径 -->
         <div class="export-section">
           <div class="export-section-title">导出路径</div>
           <div class="export-path-row">
@@ -225,8 +232,6 @@
             <button id="btn-select-export-dir" class="btn">浏览</button>
           </div>
         </div>
-
-        <!-- 导出结构预览 -->
         <div class="export-section">
           <div class="export-section-title">导出结构</div>
           <div class="export-tree">
@@ -236,8 +241,6 @@
             <div class="tree-item">📄 classes.txt</div>
           </div>
         </div>
-
-        <!-- 操作按钮 -->
         <div class="modal-actions">
           <button id="btn-cancel-export" class="btn">取消</button>
           <button id="btn-confirm-export" class="btn primary" disabled>开始导出</button>
@@ -249,6 +252,7 @@
   <script src="canvas.js"></script>
   <script src="fileManager.js"></script>
   <script src="classManager.js"></script>
+  <script src="modelManager.js"></script>
   <script src="shortcuts.js"></script>
   <script src="renderer.js"></script>
 </body>

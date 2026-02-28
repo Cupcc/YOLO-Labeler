@@ -2,9 +2,15 @@ const { app, BrowserWindow, ipcMain, dialog, nativeTheme, Menu } = require('elec
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
+const { spawn } = require('child_process');
 
 let mainWindow;
 let isCheckingForUpdates = false;
+let pythonProcess = null;
+let modelLoaded = false;
+let modelClasses = [];
+let requestIdCounter = 0;
+const pendingRequests = new Map(); // id -> { resolve, timeout, type }
 
 // 配置文件路径
 const configPath = path.join(app.getPath('userData'), 'config.json');
@@ -66,6 +72,11 @@ function createWindow() {
   }
 
   mainWindow.on('closed', () => {
+    // 窗口关闭时停止推理进程、清除模型状态，并清除保存的模型路径（下次打开必须重新选择模型）
+    stopInferenceProcess();
+    modelLoaded = false;
+    modelClasses = [];
+    saveConfig({ modelPath: null });
     mainWindow = null;
   });
 }
@@ -475,10 +486,8 @@ ipcMain.handle('dialog:selectExportDir', async () => {
 // 导出切分数据集
 ipcMain.handle('export:splitDataset', async (event, options) => {
   const { sourceDir, exportDir, ratios, classNames } = options;
-  // ratios = { train: 0.8, val: 0.1, test: 0.1 }
 
   try {
-    // 收集所有有标注的图片
     const files = fs.readdirSync(sourceDir);
     const imageExtensions = ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp'];
     const labeledImages = [];
@@ -501,13 +510,11 @@ ipcMain.handle('export:splitDataset', async (event, options) => {
       return { success: false, message: '没有找到已标注的图片' };
     }
 
-    // 打乱顺序
     for (let i = labeledImages.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [labeledImages[i], labeledImages[j]] = [labeledImages[j], labeledImages[i]];
     }
 
-    // 按比例切分
     const total = labeledImages.length;
     const trainCount = Math.round(total * ratios.train);
     const valCount = Math.round(total * ratios.val);
@@ -518,17 +525,14 @@ ipcMain.handle('export:splitDataset', async (event, options) => {
       test: labeledImages.slice(trainCount + valCount)
     };
 
-    // 创建目录结构
     const dirs = [
       'images/train', 'images/val', 'images/test',
       'labels/train', 'labels/val', 'labels/test'
     ];
     for (const dir of dirs) {
-      const fullPath = path.join(exportDir, dir);
-      fs.mkdirSync(fullPath, { recursive: true });
+      fs.mkdirSync(path.join(exportDir, dir), { recursive: true });
     }
 
-    // 复制文件
     for (const [split, images] of Object.entries(splits)) {
       for (const img of images) {
         const destImage = path.join(exportDir, 'images', split, img.imageName);
@@ -538,13 +542,11 @@ ipcMain.handle('export:splitDataset', async (event, options) => {
       }
     }
 
-    // 复制 classes.txt
     const classesPath = path.join(sourceDir, 'classes.txt');
     if (fs.existsSync(classesPath)) {
       fs.copyFileSync(classesPath, path.join(exportDir, 'classes.txt'));
     }
 
-    // 生成 data.yaml
     const yamlLines = [
       `path: ${exportDir.replace(/\\/g, '/')}`,
       `train: images/train`,
@@ -572,3 +574,170 @@ ipcMain.handle('export:splitDataset', async (event, options) => {
   }
 });
 
+// 打开模型文件选择对话框
+ipcMain.handle('dialog:openModelFile', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'YOLO Model', extensions: ['pt'] },
+      { name: 'All Files', extensions: ['*'] }
+    ],
+    title: '选择 YOLO 模型文件'
+  });
+  return result.canceled ? null : result.filePaths[0];
+});
+
+// 保存模型路径到配置
+ipcMain.handle('config:saveModelPath', (event, modelPath) => {
+  return saveConfig({ modelPath: modelPath });
+});
+
+// 获取保存的模型路径
+ipcMain.handle('config:getModelPath', () => {
+  const config = readConfig();
+  const modelPath = config.modelPath;
+  // 检查文件是否仍然存在
+  if (modelPath && fs.existsSync(modelPath)) {
+    return modelPath;
+  }
+  return null;
+});
+
+// ========== 模型管理 ==========
+function startInferenceProcess() {
+  if (pythonProcess) return;
+  let cmd, args;
+  if (app.isPackaged) {
+    // 打包后使用 PyInstaller 编译的独立可执行文件
+    const exeName = process.platform === 'win32' ? 'inference.exe' : 'inference';
+    cmd = path.join(process.resourcesPath, exeName);
+    args = [];
+  } else {
+    // 开发环境直接运行 Python 脚本
+    cmd = process.platform === 'win32' ? 'python' : 'python3';
+    args = [path.join(__dirname, 'inference.py')];
+  }
+  pythonProcess = spawn(cmd, args, {
+    stdio: ['pipe', 'pipe', 'pipe']
+  });
+  let buffer = '';
+  pythonProcess.stdout.on('data', (data) => {
+    buffer += data.toString();
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try {
+        const result = JSON.parse(line);
+        const reqId = result.id;
+        const pending = reqId !== undefined && reqId !== null ? pendingRequests.get(reqId) : null;
+
+        if (result.status === 'success') {
+          if (result.classes) {
+            modelClasses = result.classes;
+            modelLoaded = true;
+            if (mainWindow) mainWindow.webContents.send('model:loaded', result.classes);
+            if (pending) {
+              clearTimeout(pending.timeout);
+              pending.resolve({ success: true, classes: result.classes });
+              pendingRequests.delete(reqId);
+            }
+          } else if (result.data !== undefined) {
+            if (mainWindow) mainWindow.webContents.send('model:detection', result.data);
+            if (pending) {
+              clearTimeout(pending.timeout);
+              pending.resolve({ success: true, data: result.data });
+              pendingRequests.delete(reqId);
+            }
+          }
+        } else if (result.status === 'error') {
+          if (mainWindow) mainWindow.webContents.send('model:error', result.message);
+          if (pending) {
+            clearTimeout(pending.timeout);
+            pending.resolve({ success: false, error: result.message });
+            pendingRequests.delete(reqId);
+          }
+        }
+      } catch (e) {
+        console.error('Parse JSON:', e);
+      }
+    }
+  });
+  pythonProcess.stderr.on('data', (data) => console.error('Python:', data.toString()));
+  pythonProcess.on('exit', (code) => {
+    pythonProcess = null;
+    modelLoaded = false;
+    // 清理所有未完成的 pending 请求
+    for (const [id, req] of pendingRequests) {
+      clearTimeout(req.timeout);
+      req.resolve({ success: false, error: '推理进程已退出' });
+    }
+    pendingRequests.clear();
+  });
+}
+
+function stopInferenceProcess() {
+  if (pythonProcess) {
+    pythonProcess.kill();
+    pythonProcess = null;
+  }
+  modelLoaded = false;
+  modelClasses = [];
+  // 清理所有未完成的 pending 请求
+  for (const [id, req] of pendingRequests) {
+    clearTimeout(req.timeout);
+    req.resolve({ success: false, error: '推理进程已停止' });
+  }
+  pendingRequests.clear();
+}
+
+ipcMain.handle('model:load', async (event, modelPath) => {
+  if (!modelPath || !fs.existsSync(modelPath)) {
+    return { success: false, error: '模型文件不存在' };
+  }
+  try {
+    startInferenceProcess();
+    await new Promise(r => setTimeout(r, 500));
+    if (!pythonProcess || !pythonProcess.stdin) {
+      return { success: false, error: '无法启动推理进程' };
+    }
+    const reqId = ++requestIdCounter;
+    pythonProcess.stdin.write(JSON.stringify({ id: reqId, command: 'load_model', path: modelPath }) + '\n', 'utf-8');
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        if (pendingRequests.has(reqId)) {
+          pendingRequests.delete(reqId);
+          resolve({ success: false, error: '模型加载超时' });
+        }
+      }, 30000);
+      pendingRequests.set(reqId, { resolve, timeout, type: 'load' });
+    });
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('model:detect', async (event, imagePath, confThreshold = 0.25) => {
+  if (!modelLoaded || !pythonProcess) return { success: false, error: '模型未加载' };
+  if (!fs.existsSync(imagePath)) return { success: false, error: '图片文件不存在' };
+  try {
+    const reqId = ++requestIdCounter;
+    pythonProcess.stdin.write(JSON.stringify({ id: reqId, command: 'detect', image_path: imagePath, conf: confThreshold }) + '\n', 'utf-8');
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        if (pendingRequests.has(reqId)) {
+          pendingRequests.delete(reqId);
+          resolve({ success: false, error: '检测超时' });
+        }
+      }, 30000);
+      pendingRequests.set(reqId, { resolve, timeout, type: 'detect' });
+    });
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('model:getStatus', () => ({ loaded: modelLoaded, classes: modelClasses }));
+ipcMain.handle('model:close', () => { stopInferenceProcess(); return true; });
+
+app.on('before-quit', () => { stopInferenceProcess(); });
